@@ -23,13 +23,31 @@ variable "docker_socket" {
   type        = string
 }
 
-data "coder_parameter" "repo_url" {
-  type         = "string"
-  name         = "repo_url"
-  display_name = "Git Repository"
-  description  = "Enter the URL of the Git repository to clone into your workspace. This repository should contain a devcontainer.json file to configure your development environment."
-  default      = "https://github.com/coder/coder"
-  mutable      = true
+# data "coder_parameter" "repo_url" {
+#   type         = "string"
+#   name         = "repo_url"
+#   display_name = "Git Repository"
+#   description  = "Enter the URL of the Git repository to clone into your workspace. This repository should contain a devcontainer.json file to configure your development environment."
+#   default      = "https://github.com/coder/coder"
+#   mutable      = true
+# }
+
+data "coder_parameter" "language" {
+  name        = "Container"
+  description = "Specify which language workspace you want to open"
+  mutable     = false
+  type        = "string"
+  default     = "python"
+  option {
+    value = "https://github.com/pfnass/coder-python-devcontainer"
+    name  = "Python"
+    icon  = "/icon/docker.svg"
+  }
+  option {
+    value = "https://github.com/pfnass/coder-go-devcontainer"
+    name  = "Go"
+    icon  = "/icon/docker.svg"
+  }
 }
 
 provider "docker" {
@@ -106,14 +124,6 @@ resource "coder_agent" "main" {
   }
 
   metadata {
-    display_name = "Home Disk"
-    key          = "3_home_disk"
-    script       = "coder stat disk --path $${HOME}"
-    interval     = 60
-    timeout      = 1
-  }
-
-  metadata {
     display_name = "CPU Usage (Host)"
     key          = "4_cpu_usage_host"
     script       = "coder stat cpu --host"
@@ -153,24 +163,6 @@ resource "coder_script" "init_docker_in_docker" {
   script       = file("${path.module}/scripts/init-docker-in-docker.sh")
 }
 
-data "coder_parameter" "example" {
-  name        = "Container"
-  description = "Specify a language container to place your workspace."
-  mutable     = false
-  type        = "string"
-  default     = "us-central1-a"
-  option {
-    value = "us-central1-a"
-    name  = "US Central"
-    icon  = "/icon/docker.svg"
-  }
-  option {
-    value = "asia-southeast1-a"
-    name  = "Singapore"
-    icon  = "/icon/docker.svg"
-  }
-}
-
 # See https://registry.coder.com/modules/coder/devcontainers-cli
 module "devcontainers-cli" {
   count    = data.coder_workspace.me.start_count
@@ -188,7 +180,7 @@ module "git-clone" {
   count    = data.coder_workspace.me.start_count
   source   = "registry.coder.com/coder/git-clone/coder"
   agent_id = coder_agent.main.id
-  url      = data.coder_parameter.repo_url.value
+  url      = data.coder_parameter.language.value
   base_dir = "~"
   # This ensures that the latest non-breaking version of the module gets
   # downloaded, you can also pin the module version to prevent breaking
